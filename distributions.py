@@ -5,8 +5,7 @@ import pandas as pd
 import scipy.stats as scistat
 
 
-def plot_distributions(variables, names=[], optimise_bins=True,
-                       return_nan_positions=False):
+def plot_distributions(variables, names=[], optimise_bins=True):
     """
     Plot the histograms of each predictor variable.
     
@@ -14,8 +13,7 @@ def plot_distributions(variables, names=[], optimise_bins=True,
     -----
     Reasonably generalised function to take in a variable(s), and just plot 
     the histogram hassle free. Useful for quickly and reasonably efficiently 
-    inspecting distributions of things. Options for other processes are
-    included.
+    inspecting distributions of things.
     
     Parameters
     ----------
@@ -29,9 +27,6 @@ def plot_distributions(variables, names=[], optimise_bins=True,
     optimise_bins: Bool (default: True)
         Whether or not to automatically determine the optimal bins for 
         histogram, using Freedman-Diaconis rule [1]
-        
-    return_nan_positions: Bool (default: False)
-        Whether or not to return an array with positions of each NaN value
         
     Returns
     -------
@@ -56,10 +51,12 @@ def plot_distributions(variables, names=[], optimise_bins=True,
         return None
     
     # Determine number of plot to make
-    if len(variables.shape) > 1:
-        num_variables = variables.shape[1]
+    if len(variables.shape) == 2:
+        num_variables = variables.shape[0]
     else:
+        # If not 2D, make it 2D
         num_variables = 1
+        variables = variables.reshape(1, -1)
         
     # Check for and alert about NaNs
     if np.sum(np.isnan(variables)) > 1:
@@ -68,9 +65,6 @@ def plot_distributions(variables, names=[], optimise_bins=True,
               'automatically interpolated using the mean of existing ' +
               'values. To get the positions of the NaN values, re-run this ' +
               'function with return_nan_positions = True.')
-        
-        if return_nan_positions:
-            return np.isnan(variables)
     
     # Iterate through each variable and plot distributions
     for i in range(num_variables):
@@ -110,7 +104,7 @@ def plot_distributions(variables, names=[], optimise_bins=True,
         else:
             value_name = ""
             
-        plt.title("Distribution (Histogram) of variable: " + str(i) + "." +
+        plt.title("Distribution (Histogram) of variable " +
                   str(value_name))
         plt.plot(x_axis[1:], density)
     
