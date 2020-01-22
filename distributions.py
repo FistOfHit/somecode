@@ -1,7 +1,9 @@
 # Imports
+import collections
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import torch
 import scipy.stats as scistat
 
 
@@ -41,22 +43,8 @@ def plot_distributions(variables, names=[], optimise_bins=True):
     """
     
     # Standardise data type
-    if type(variables) == list:
-        variables = np.array(variables)
-    elif type(variables) == pd.Series or type(variables) == pd.DataFrame:
-        variables = variables.to_numpy()
-    elif type(variables) != np.ndarray:
-        raise TypeError('Input is not of type List, Numpy NDArray or Pandas '
-                        + 'Series/DataFrame')
-        return None
-    
-    # Determine number of plot to make
-    if len(variables.shape) == 2:
-        num_variables = variables.shape[0]
-    else:
-        # If not 2D, make it 2D
-        num_variables = 1
-        variables = variables.reshape(1, -1)
+    variables = to_numpy(variables)
+    num_variables = variables.shape[0]
         
     # Check for and alert about NaNs
     if np.sum(np.isnan(variables)) > 1:
@@ -109,3 +97,86 @@ def plot_distributions(variables, names=[], optimise_bins=True):
         plt.plot(x_axis[1:], density)
     
     return
+
+
+def clip_distribution(variables):
+    """
+    Keep only the central 98th percentiles of the data provided.
+    
+    Parameters
+    ----------
+    variables: List OR Numpy array OR Pandas Dataframe/Series (array-like)
+        multi-dimensional array-like object with all values of variable, each
+        variable to its own row, and readings/values in columns
+        
+    Returns:
+    --------
+    clipped_variables: Numpy array
+        Essentially variables, but with with extreme values removed. Shape will
+        be affected, and wont be filled in with other values/NaNs.
+    """
+    
+    # Standardise data type
+    variables = to_numpy(variables)
+    num_variables = variables.shape[0]
+        
+    # Determine the size of the clipped data (all rows will have same number 
+    # of elements removed)
+    low_perc, high_perc = np.percentile(variables[0, :], q=(1, 99))
+    extreme_loc = np.logical_or(variables[0, :] > high_perc,
+                                variables[0, :] < low_perc)
+    clipped_size = len(extreme_loc)
+        
+    # Initialise the output list
+    clipped_variables = np.zeros((num_variables, clipped_size))
+    
+    for i in range(num_variables):
+
+        # Find the percentiles
+        low_perc, high_perc = np.percentile(variables[i, :], q=(1, 99))
+    
+        # Find and remove extreme values
+        extreme_loc = np.logical_or(variables[i, :] > high_perc,
+                                    variables[i, :] < low_perc)
+        clipped_variables[i, :] = variables[i, ~extreme_loc]
+
+    return clipped_variables
+
+
+def to_numpy(data):
+    """
+    Make sure that data entered into any function is compatible shape and type.
+    
+    Parameters
+    ----------
+    data: array-like
+        Some data form in array like structures, could be:
+            Numpy array
+            Pandas DataFrame/Series
+            Torch Tensor
+            List, tuple, deque
+    
+    Returns
+    -------
+    variables: Numpy array
+        Compatible and usable object which can be passed into any function in 
+        this codebase, shaped as a 2D array
+    """
+    
+    # Standardise data type
+    acceptable_types = [list, tuple, collections.deque]
+    if any(type(data) == obj for obj in acceptable_types):
+        variables = np.array(data)
+    elif type(data) == pd.Series or type(data) == pd.DataFrame:
+        variables = data.to_numpy()
+    elif type(data) == torch.Tensor:
+        variables = data.numpy()
+    elif type(data) != np.ndarray:
+        raise TypeError('Input is not an acceptable array-like iterable object')
+        return None
+        
+    # If not 2D, make it 2D
+    if len(variables.shape) < 2:
+        variables = variables.reshape(1, -1)
+        
+    return variables
