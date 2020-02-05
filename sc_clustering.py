@@ -1,5 +1,5 @@
 # Imports
-import common
+import sc_common
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -42,9 +42,9 @@ def plot_clusters(x_variable, y_variable, labels, variable_names=['']*2,
     None.
     """
     
-    x_variable = common.to_numpy(x_variable)
-    y_variable = common.to_numpy(y_variable)
-    labels = common.to_numpy(labels)
+    x_variable = sc_common.to_numpy(x_variable)
+    y_variable = sc_common.to_numpy(y_variable)
+    labels = sc_common.to_numpy(labels)
     
     # Create colour list from labels
     label_colours = [cm.jet(label) for label in np.unique(labels)/np.max(labels)]
